@@ -126,7 +126,7 @@
             // Status
             // 
             Status.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            Status.Location = new Point(421, 9);
+            Status.Location = new Point(422, 58);
             Status.Margin = new Padding(4, 0, 4, 0);
             Status.Name = "Status";
             Status.Size = new Size(349, 28);
