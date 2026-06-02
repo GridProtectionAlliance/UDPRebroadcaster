@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>UDPRebroadcaster</RootNamespace>
+    <AssemblyName>UDPRebroadcaster</AssemblyName>
+    <ApplicationIcon>GPA.ico</ApplicationIcon>
+    <Version>2.0.0</Version>
+    <AssemblyTitle>UDP Rebroadcaster</AssemblyTitle>
+    <Product>UDP Rebroadcaster</Product>
+    <Company>Grid Protection Alliance</Company>
+    <Description>UDP Data Rebroadcaster</Description>
+    <Copyright>Copyright © Grid Protection Alliance, 2005-2026</Copyright>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gemstone.Communication" Version="1.0.175" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="HelpAboutLogo.png" />
+    <EmbeddedResource Include="Disclaimer.txt" />
+  </ItemGroup>
+
+</Project>
