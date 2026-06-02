@@ -29,7 +29,7 @@ namespace UDPRebroadcaster.Augmentations;
 /// Default pass-through augmentation: rebroadcasts every received packet to every destination
 /// byte-for-byte. All hot-path methods are true no-ops — zero work, zero allocations.
 /// </summary>
-[Label("No augmentation")]
+[Label("None")]
 internal sealed class NoAugmentation : IRebroadcastAugmentation
 {
     public void Initialize(IReadOnlyList<IPEndPoint> destinations)

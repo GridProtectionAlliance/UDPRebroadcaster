@@ -28,18 +28,10 @@ namespace UDPRebroadcaster.Augmentations;
 /// for the decorated type.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
-internal sealed class LabelAttribute : Attribute
+internal sealed class LabelAttribute(string label) : Attribute
 {
-    /// <summary>
-    /// Creates a new <see cref="LabelAttribute"/> with the specified label text.
-    /// </summary>
-    public LabelAttribute(string label)
-    {
-        Label = label;
-    }
-
     /// <summary>
     /// Gets the label text shown in the UI for the decorated type.
     /// </summary>
-    public string Label { get; }
+    public string Label { get; } = label;
 }

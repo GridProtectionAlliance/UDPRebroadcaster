@@ -30,21 +30,21 @@ namespace UDPRebroadcaster.Augmentations;
 /// binding directly to a WinForms <c>ComboBox</c> (<see cref="ToString"/> yields the drop-down
 /// label).
 /// </summary>
-internal sealed class AugmentationOption
+internal sealed class AugmentationOption(string label, Type type)
 {
-    public AugmentationOption(string label, Type type)
-    {
-        Label = label;
-        Type = type;
-    }
+    /// <summary>
+    /// User-facing label, from the implementation's <see cref="LabelAttribute"/>.
+    /// </summary>
+    public string Label { get; } = label;
 
-    /// <summary>User-facing label, from the implementation's <see cref="LabelAttribute"/>.</summary>
-    public string Label { get; }
+    /// <summary>
+    /// The augmentation implementation type.
+    /// </summary>
+    public Type Type { get; } = type;
 
-    /// <summary>The augmentation implementation type.</summary>
-    public Type Type { get; }
-
-    /// <summary>Instantiates a fresh augmentation instance for this option.</summary>
+    /// <summary>
+    /// Instantiates a fresh augmentation instance for this option.
+    /// </summary>
     public IRebroadcastAugmentation Create() => (IRebroadcastAugmentation)Activator.CreateInstance(Type)!;
 
     public override string ToString() => Label;
