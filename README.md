@@ -1,5 +1,3 @@
-![Logo](HelpAboutLogo.png)
-
 # UDP Rebroadcaster
 
 A small Windows utility that listens for a UDP stream on a single port and rebroadcasts every received packet, byte-for-byte, to one or more downstream destinations. Useful for fanning a single UDP feed (PMU/PDC data, telemetry, video streams, log packets, etc.) out to multiple consumers without modifying the original publisher.
