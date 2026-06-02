@@ -35,7 +35,6 @@ First release of the modernized version: a complete .NET 9 rewrite of the 2005-e
 - **Augmentation pipeline switched to `Span<byte>` in-place mutation**. An earlier draft of the pipeline allocated one `byte[]` per destination per packet (`out byte[]` from the transform method). The current design mutates the receive buffer in place across all destinations; `BeginPacket(ReadOnlySpan<byte>)` snapshots per-packet state once before the fan-out starts.
 - **Hex display path optimization**. The hex string is now formatted on the receive thread *before* fan-out and marshaled to the UI as an immutable string. Replaces the earlier "snapshot the `byte[]` then format on UI thread" approach — eliminates the per-packet snapshot allocation and the race against in-place mutation.
 - **Lock during listen**: `Listen on port`, `Rebroadcast destinations`, and `Augmentation` controls disable while the listener is running. All three are captured once at Start, so changes mid-session were silently ignored before; now the UI reflects that.
-- **License headers**: swap across all source files and the embedded `Disclaimer.txt` — Eclipse Public License v1.0 → MIT.
 - **Class name fix**: `UDPRebroacaster` (long-standing typo, missing "d") → `UDPRebroadcaster`. About box renamed/split accordingly.
 - **Statistics math**: `Ticks.PerSecond` → BCL `TimeSpan.TicksPerSecond` (same constant, no dependency).
 - **Project layout**: code consolidated under `src/`, screenshot under `docs/`, with README + LICENSE + CHANGELOG at the repo root.
@@ -91,4 +90,4 @@ Point a single SEL 735 (or any SEL CWS source) at the rebroadcaster, set three i
 
 ### History context
 
-The original VB.NET / .NET 2.0 implementation dates to 2005, built against the TVA shared code libraries (the predecessors of GSF and the Gemstone Libraries). A partial 2011 C# port targeting .NET Framework 4 with the TVA Code Library existed but was never finished. This 2.0.0 release modernizes the project end-to-end to .NET 9, swaps every external dependency for the BCL, and adds the augmentation pipeline.
+The original VB.NET / .NET 2.0 implementation dates to 2005, built against the TVA shared code libraries (the predecessors of Grid Solutions Framework (GSF) and the Gemstone Libraries). A partial 2011 C# port targeting .NET Framework 4 against GSF existed but was never finished. This 2.0.0 release modernizes the project end-to-end to .NET 9, swaps every external dependency for the BCL, and adds the augmentation pipeline.
