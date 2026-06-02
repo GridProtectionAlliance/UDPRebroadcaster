@@ -22,23 +22,39 @@
 //       Updated to C# using GSF libraries
 //  06/02/2012 - J. Ritchie Carroll
 //       Ported to .NET 9 using Gemstone Libraries
+//  06/02/2026 - J. Ritchie Carroll
+//       Added pluggable per-destination augmentation pipeline (SEL CWS channel ID rewriting);
+//       dropped Gemstone.Communication dependency, receive now uses the BCL UdpClient.
 //
 //******************************************************************************************************
 // ReSharper disable LocalizableElement
 
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
-using Gemstone;
-using Gemstone.Communication;
+using UDPRebroadcaster.Augmentations;
 
 namespace UDPRebroadcaster;
 
 public partial class UDPRebroadcaster : Form
 {
-    private const long UpdateInterval = Ticks.PerSecond * 2;
+    private const long UpdateInterval = TimeSpan.TicksPerSecond * 2;
 
     private AppSettings m_settings = new();
-    private UdpClient? m_udpClient;
-    private UdpServer? m_udpServer;
+    private IReadOnlyList<AugmentationOption> m_augmentationOptions = [];
+
+    // Receive side: BCL UdpClient bound to the listen port. A background task pumps it and
+    // dispatches each datagram into the per-destination fan-out path.
+    private UdpClient? m_receiveClient;
+    private CancellationTokenSource? m_receiveCts;
+
+    // Send side: a single UdpClient on an ephemeral local port, used for per-destination sends.
+    // When augmentation is active each destination needs its own payload, so an indexed
+    // IPEndPoint array gives us deterministic per-destination control.
+    private UdpClient? m_sendClient;
+    private IPEndPoint[]? m_destinations;
+    private IRebroadcastAugmentation? m_augmentation;
+
     private long m_samples;
     private long m_lastSamples;
     private long m_lastUpdate;
@@ -58,6 +74,18 @@ public partial class UDPRebroadcaster : Form
         AutoListen.Checked = m_settings.AutoListen;
         m_settings.ApplyWindowLayout(this);
 
+        // Populate the augmentation drop-down once, from reflection.
+        m_augmentationOptions = AugmentationDiscovery.DiscoverAll();
+        AugmentationOptions.Items.Clear();
+
+        foreach (AugmentationOption option in m_augmentationOptions)
+            AugmentationOptions.Items.Add(option);
+
+        // Restore previously selected augmentation by type name; fall back to the first entry
+        // (the NoAugmentation default per AugmentationDiscovery's ordering) if missing.
+        AugmentationOption? restored = m_augmentationOptions.FirstOrDefault(o => o.Type.Name == m_settings.Augmentation);
+        AugmentationOptions.SelectedItem = restored ?? m_augmentationOptions.FirstOrDefault();
+
         Version version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0);
         Status.Text = $"Version {version.Major}.{version.Minor}.{version.Build}";
 
@@ -72,6 +100,7 @@ public partial class UDPRebroadcaster : Form
         m_settings.Port = Port.Text;
         m_settings.RebroadcastDestinations = RebroadcastDestinations.Text;
         m_settings.AutoListen = AutoListen.Checked;
+        m_settings.Augmentation = (AugmentationOptions.SelectedItem as AugmentationOption)?.Type.Name ?? nameof(NoAugmentation);
         m_settings.CaptureWindowLayout(this);
         m_settings.Save();
     }
@@ -80,7 +109,7 @@ public partial class UDPRebroadcaster : Form
     {
         try
         {
-            if (m_udpServer is null)
+            if (m_receiveClient is null)
                 StartRebroadcasting();
             else
                 StopRebroadcasting();
@@ -96,64 +125,165 @@ public partial class UDPRebroadcaster : Form
     private void StartRebroadcasting()
     {
         Listen.Text = "&Stop";
+
+        // Port, destinations, and augmentation are all captured below and never re-read during
+        // the listening session. Disable their controls so the user can see the selections are
+        // locked in. StopRebroadcasting re-enables them (including from the catch path in
+        // Listen_Click if startup fails).
+        Port.Enabled = false;
+        RebroadcastDestinations.Enabled = false;
+        AugmentationOptions.Enabled = false;
+
         SampleCount.Text = "0";
         SampleRate.Text = "0";
         m_samples = 0;
         m_lastSamples = 0;
         m_lastUpdate = DateTime.UtcNow.Ticks;
 
-        m_udpClient = new UdpClient($"port={Port.Text}") { ReceiveBufferSize = 65536 };
-        m_udpClient.ReceiveDataComplete += UdpClient_ReceiveDataComplete;
-        m_udpClient.ConnectAsync();
+        if (!int.TryParse(Port.Text, out int listenPort) || listenPort is < 1 or > 65535)
+            throw new FormatException($"Invalid listen port '{Port.Text}'.");
 
-        m_udpServer = new UdpServer($"port=-1; clients={RebroadcastDestinations.Text}; interface=0.0.0.0") { SendBufferSize = 65536 };
-        m_udpServer.Start();
+        // Resolve destinations to IPEndPoint[] up-front so per-packet sends do no DNS / parsing.
+        m_destinations = ParseDestinations(RebroadcastDestinations.Text);
+
+        if (m_destinations.Length == 0)
+            throw new InvalidOperationException("At least one rebroadcast destination is required.");
+
+        // Instantiate the selected augmentation strategy and let it size itself to the
+        // destination list.
+        AugmentationOption selected = AugmentationOptions.SelectedItem as AugmentationOption
+            ?? m_augmentationOptions.First(option => option.Type == typeof(NoAugmentation));
+
+        m_augmentation = selected.Create();
+        m_augmentation.Initialize(m_destinations);
+
+        // Send socket: ephemeral local port, IPv4. Sends are synchronous; UDP sends are fast
+        // enough that this is cheaper than the async machinery for typical fan-out sizes.
+        m_sendClient = new UdpClient(AddressFamily.InterNetwork) { Client = { SendBufferSize = 65536 } };
+
+        // Receive socket: bind 0.0.0.0:listenPort, then drain it from a background task.
+        m_receiveClient = new UdpClient(listenPort) { Client = {ReceiveBufferSize = 65536 } };
+
+        m_receiveCts = new CancellationTokenSource();
+        CancellationToken token = m_receiveCts.Token;
+        UdpClient receiveClient = m_receiveClient;
+
+        // Fire-and-forget; the loop terminates when the CTS is cancelled or the client is
+        // disposed. Errors are absorbed inside the loop.
+        Task.Run(() => ReceiveLoopAsync(receiveClient, token), token);
     }
 
     private void StopRebroadcasting()
     {
         Listen.Text = "&Start";
+        Port.Enabled = true;
+        RebroadcastDestinations.Enabled = true;
+        AugmentationOptions.Enabled = true;
 
-        if (m_udpClient is not null)
+        // Cancel first so the loop sees IsCancellationRequested even if it was about to issue
+        // another ReceiveAsync; then dispose the socket which unblocks an in-flight receive.
+        if (m_receiveCts is not null)
         {
-            m_udpClient.ReceiveDataComplete -= UdpClient_ReceiveDataComplete;
-            m_udpClient.Disconnect();
-            m_udpClient.Dispose();
-            m_udpClient = null;
+            m_receiveCts.Cancel();
+            m_receiveCts.Dispose();
+            m_receiveCts = null;
         }
 
-        if (m_udpServer is not null)
+        if (m_receiveClient is not null)
         {
-            m_udpServer.Stop();
-            m_udpServer.Dispose();
-            m_udpServer = null;
+            m_receiveClient.Dispose();
+            m_receiveClient = null;
+        }
+
+        if (m_sendClient is not null)
+        {
+            m_sendClient.Dispose();
+            m_sendClient = null;
+        }
+
+        m_destinations = null;
+        m_augmentation = null;
+    }
+
+    private async Task ReceiveLoopAsync(UdpClient client, CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                UdpReceiveResult result = await client.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+                HandleReceivedDatagram(result.Buffer, result.Buffer.Length);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when Stop() cancels the token.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Expected when Stop() disposes the receive client.
+        }
+        catch (SocketException)
+        {
+            // Socket-level failure; treat as a stop signal.
         }
     }
 
-    private void UdpClient_ReceiveDataComplete(object? sender, EventArgs<byte[], int> e)
+    private void HandleReceivedDatagram(byte[] buffer, int length)
     {
-        byte[] buffer = e.Argument1;
-        int length = e.Argument2;
+        // Capture all references once at entry. The form may be closing on another thread; a
+        // concurrent Stop() must not be able to NullReference us mid-fan-out.
+        IPEndPoint[]? destinations = m_destinations;
+        UdpClient? sendClient = m_sendClient;
+        IRebroadcastAugmentation? augmentation = m_augmentation;
 
-        // Capture server reference once so a concurrent Stop() can't NullReference us mid-call.
-        UdpServer? server = m_udpServer;
-        server?.MulticastAsync(buffer, 0, length);
+        if (destinations is null || sendClient is null || augmentation is null)
+            return;
+
+        Span<byte> packet = buffer.AsSpan(0, length);
+
+        // Render the hex display string here, on the receive thread, BEFORE the fan-out
+        // mutates the buffer. Marshalling a finished string (not a buffer reference) to the UI
+        // thread sidesteps both the in-place-mutation race and any per-packet byte[] snapshot
+        // allocation. The string is the only allocation, paid only when ShowData is on.
+        string? hexDisplay = ShowData.Checked && !IsDisposed ? FormatHexDump(packet) : null;
+
+        // Let the augmentation snapshot any per-packet state it needs (e.g., the original
+        // channel ID) before the loop starts overwriting bytes.
+        augmentation.BeginPacket(packet);
+
+        for (int i = 0; i < destinations.Length; i++)
+        {
+            augmentation.TransformForDestination(packet, i);
+
+            try
+            {
+                // Span overload — UdpClient.Send copies into the kernel send buffer
+                // synchronously, so we're free to mutate 'packet' again for the next iteration.
+                sendClient.Send(packet, destinations[i]);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Stop() ran between our capture and this send; drop the rest of the fan-out
+                // and return — there is nothing to retry to.
+                return;
+            }
+            catch (SocketException)
+            {
+                // One destination unreachable shouldn't kill the rest of the broadcast.
+            }
+        }
 
         m_samples++;
 
-        if (ShowData.Checked && !IsDisposed)
-        {
-            // Snapshot bytes — buffer is reused by the reception loop.
-            byte[] snapshot = new byte[length];
-            Buffer.BlockCopy(buffer, 0, snapshot, 0, length);
-            BeginInvoke(() => ShowBinaryData(snapshot));
-        }
+        if (hexDisplay is not null)
+            BeginInvoke(() => UDPFrame.Text = hexDisplay);
 
         long now = DateTime.UtcNow.Ticks;
 
         if (now - m_lastUpdate < UpdateInterval)
             return;
-        
+
         m_sampleRate = (m_samples - m_lastSamples) / ((now - m_lastUpdate) / (double)TimeSpan.TicksPerSecond);
         m_lastUpdate = now;
         m_lastSamples = m_samples;
@@ -162,14 +292,56 @@ public partial class UDPRebroadcaster : Form
             BeginInvoke(UpdateStats);
     }
 
+    private static IPEndPoint[] ParseDestinations(string text)
+    {
+        return text
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(ParseEndPoint)
+            .ToArray();
+    }
+
+    private static IPEndPoint ParseEndPoint(string entry)
+    {
+        int colon = entry.LastIndexOf(':');
+
+        if (colon <= 0 || colon == entry.Length - 1)
+            throw new FormatException($"Invalid destination '{entry}'. Expected host:port.");
+
+        string host = entry[..colon].Trim();
+        string portText = entry[(colon + 1)..].Trim();
+
+        if (!int.TryParse(portText, out int port) || port is < 1 or > 65535)
+            throw new FormatException($"Invalid port in destination '{entry}'.");
+
+        IPAddress address;
+
+        if (IPAddress.TryParse(host, out IPAddress? parsed))
+        {
+            address = parsed;
+        }
+        else
+        {
+            // Resolve DNS once at start; per-packet sends never block on DNS.
+            IPAddress[] resolved = Dns.GetHostAddresses(host);
+
+            address = resolved.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)
+                ?? throw new FormatException($"Could not resolve '{host}' to an IPv4 address.");
+        }
+
+        return new IPEndPoint(address, port);
+    }
+
     private void About_Click(object? sender, EventArgs e)
     {
         using AboutBox about = new();
         about.ShowDialog(this);
     }
 
-    private void ShowBinaryData(byte[] buffer)
+    private static string FormatHexDump(ReadOnlySpan<byte> buffer)
     {
+        if (buffer.IsEmpty)
+            return string.Empty;
+
         // Convert.ToHexString produces unseparated uppercase pairs; insert a space between each pair.
         string hex = Convert.ToHexString(buffer);
         char[] spaced = new char[hex.Length + buffer.Length];
@@ -182,7 +354,7 @@ public partial class UDPRebroadcaster : Form
             spaced[j++] = ' ';
         }
 
-        UDPFrame.Text = new string(spaced, 0, Math.Max(0, j - 1));
+        return new string(spaced, 0, Math.Max(0, j - 1));
     }
 
     private void UpdateStats()

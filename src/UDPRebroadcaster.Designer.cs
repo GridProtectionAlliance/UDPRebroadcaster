@@ -28,218 +28,256 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(UDPRebroadcaster));
-            this.ShowData = new System.Windows.Forms.CheckBox();
-            this.AutoListen = new System.Windows.Forms.CheckBox();
-            this.About = new System.Windows.Forms.Button();
-            this.Instructions = new System.Windows.Forms.Label();
-            this.RebroadcastDestinations = new System.Windows.Forms.TextBox();
-            this.Port = new System.Windows.Forms.TextBox();
-            this.RebroadcastPortLabel = new System.Windows.Forms.Label();
-            this.Status = new System.Windows.Forms.Label();
-            this.Listen = new System.Windows.Forms.Button();
-            this.ToolTipMessage = new System.Windows.Forms.ToolTip(this.components);
-            this.ListenOnPortLabel = new System.Windows.Forms.Label();
-            this.SamplesPerSecLabel = new System.Windows.Forms.Label();
-            this.SampleRate = new System.Windows.Forms.Label();
-            this.SampleRateLabel = new System.Windows.Forms.Label();
-            this.SampleCount = new System.Windows.Forms.Label();
-            this.SamplesLabel = new System.Windows.Forms.Label();
-            this.UDPFrame = new System.Windows.Forms.Label();
-            this.SuspendLayout();
+            ShowData = new CheckBox();
+            AutoListen = new CheckBox();
+            About = new Button();
+            Instructions = new Label();
+            RebroadcastDestinations = new TextBox();
+            Port = new TextBox();
+            RebroadcastPortLabel = new Label();
+            Status = new Label();
+            Listen = new Button();
+            ToolTipMessage = new ToolTip(components);
+            AugmentationOptions = new ComboBox();
+            ListenOnPortLabel = new Label();
+            SamplesPerSecLabel = new Label();
+            SampleRate = new Label();
+            SampleRateLabel = new Label();
+            SampleCount = new Label();
+            SamplesLabel = new Label();
+            UDPFrame = new Label();
+            AugmentationLabel = new Label();
+            SuspendLayout();
             // 
             // ShowData
             // 
-            this.ShowData.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ShowData.Location = new System.Drawing.Point(458, 80);
-            this.ShowData.Name = "ShowData";
-            this.ShowData.Size = new System.Drawing.Size(80, 16);
-            this.ShowData.TabIndex = 33;
-            this.ShowData.Text = "&Show data";
-            this.ShowData.TextAlign = System.Drawing.ContentAlignment.BottomLeft;
-            this.ToolTipMessage.SetToolTip(this.ShowData, "Enabling data display may lower data retransmission rate.");
-            this.ShowData.CheckedChanged += new System.EventHandler(this.ShowData_CheckedChanged);
+            ShowData.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            ShowData.Location = new Point(686, 92);
+            ShowData.Margin = new Padding(4, 3, 4, 3);
+            ShowData.Name = "ShowData";
+            ShowData.Size = new Size(85, 18);
+            ShowData.TabIndex = 33;
+            ShowData.Text = "&Show data";
+            ShowData.TextAlign = ContentAlignment.BottomLeft;
+            ToolTipMessage.SetToolTip(ShowData, "Enabling data display may lower data retransmission rate.");
+            ShowData.CheckedChanged += ShowData_CheckedChanged;
             // 
             // AutoListen
             // 
-            this.AutoListen.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.AutoListen.Location = new System.Drawing.Point(321, 80);
-            this.AutoListen.Name = "AutoListen";
-            this.AutoListen.Size = new System.Drawing.Size(137, 16);
-            this.AutoListen.TabIndex = 21;
-            this.AutoListen.Text = "A&uto listen on start-up";
-            this.AutoListen.TextAlign = System.Drawing.ContentAlignment.BottomLeft;
+            AutoListen.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            AutoListen.Location = new Point(529, 92);
+            AutoListen.Margin = new Padding(4, 3, 4, 3);
+            AutoListen.Name = "AutoListen";
+            AutoListen.Size = new Size(149, 18);
+            AutoListen.TabIndex = 21;
+            AutoListen.Text = "A&uto listen on start-up";
+            AutoListen.TextAlign = ContentAlignment.BottomLeft;
             // 
             // About
             // 
-            this.About.Location = new System.Drawing.Point(281, 8);
-            this.About.Name = "About";
-            this.About.Size = new System.Drawing.Size(75, 23);
-            this.About.TabIndex = 23;
-            this.About.Text = "&About...";
-            this.About.Click += new System.EventHandler(this.About_Click);
+            About.Location = new Point(325, 7);
+            About.Margin = new Padding(4, 3, 4, 3);
+            About.Name = "About";
+            About.Size = new Size(88, 27);
+            About.TabIndex = 23;
+            About.Text = "&About...";
+            About.Click += About_Click;
             // 
             // Instructions
             // 
-            this.Instructions.Location = new System.Drawing.Point(145, 56);
-            this.Instructions.Name = "Instructions";
-            this.Instructions.Size = new System.Drawing.Size(392, 21);
-            this.Instructions.TabIndex = 25;
-            this.Instructions.Text = "Format =  IP1:port, IP2:port, IP3:port - etc.";
+            Instructions.Location = new Point(169, 65);
+            Instructions.Margin = new Padding(4, 0, 4, 0);
+            Instructions.Name = "Instructions";
+            Instructions.Size = new Size(525, 24);
+            Instructions.TabIndex = 25;
+            Instructions.Text = "Format =  IP1:port, IP2:port, IP3:port - etc.";
             // 
             // RebroadcastDestinations
             // 
-            this.RebroadcastDestinations.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.RebroadcastDestinations.Location = new System.Drawing.Point(145, 32);
-            this.RebroadcastDestinations.Name = "RebroadcastDestinations";
-            this.RebroadcastDestinations.Size = new System.Drawing.Size(397, 20);
-            this.RebroadcastDestinations.TabIndex = 20;
-            this.RebroadcastDestinations.Text = "127.0.0.1:3060, 127.0.0.1:3070";
+            RebroadcastDestinations.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            RebroadcastDestinations.Location = new Point(169, 37);
+            RebroadcastDestinations.Margin = new Padding(4, 3, 4, 3);
+            RebroadcastDestinations.Name = "RebroadcastDestinations";
+            RebroadcastDestinations.Size = new Size(600, 23);
+            RebroadcastDestinations.TabIndex = 20;
+            RebroadcastDestinations.Text = "127.0.0.1:3060, 127.0.0.1:3070";
             // 
             // Port
             // 
-            this.Port.Location = new System.Drawing.Point(145, 8);
-            this.Port.Name = "Port";
-            this.Port.Size = new System.Drawing.Size(48, 20);
-            this.Port.TabIndex = 18;
-            this.Port.Text = "3050";
+            Port.Location = new Point(169, 9);
+            Port.Margin = new Padding(4, 3, 4, 3);
+            Port.Name = "Port";
+            Port.Size = new Size(55, 23);
+            Port.TabIndex = 18;
+            Port.Text = "3050";
             // 
             // RebroadcastPortLabel
             // 
-            this.RebroadcastPortLabel.Location = new System.Drawing.Point(1, 32);
-            this.RebroadcastPortLabel.Name = "RebroadcastPortLabel";
-            this.RebroadcastPortLabel.Size = new System.Drawing.Size(136, 20);
-            this.RebroadcastPortLabel.TabIndex = 19;
-            this.RebroadcastPortLabel.Text = "&Rebroadcast destinations:";
-            this.RebroadcastPortLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            RebroadcastPortLabel.Location = new Point(1, 37);
+            RebroadcastPortLabel.Margin = new Padding(4, 0, 4, 0);
+            RebroadcastPortLabel.Name = "RebroadcastPortLabel";
+            RebroadcastPortLabel.Size = new Size(159, 23);
+            RebroadcastPortLabel.TabIndex = 19;
+            RebroadcastPortLabel.Text = "&Rebroadcast destinations:";
+            RebroadcastPortLabel.TextAlign = ContentAlignment.MiddleRight;
             // 
             // Status
             // 
-            this.Status.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.Status.Location = new System.Drawing.Point(361, 8);
-            this.Status.Name = "Status";
-            this.Status.Size = new System.Drawing.Size(181, 24);
-            this.Status.TabIndex = 24;
-            this.Status.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            Status.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            Status.Location = new Point(421, 9);
+            Status.Margin = new Padding(4, 0, 4, 0);
+            Status.Name = "Status";
+            Status.Size = new Size(349, 28);
+            Status.TabIndex = 24;
+            Status.TextAlign = ContentAlignment.MiddleRight;
             // 
             // Listen
             // 
-            this.Listen.Location = new System.Drawing.Point(201, 8);
-            this.Listen.Name = "Listen";
-            this.Listen.Size = new System.Drawing.Size(75, 23);
-            this.Listen.TabIndex = 22;
-            this.Listen.Text = "&Start";
-            this.Listen.Click += new System.EventHandler(this.Listen_Click);
+            Listen.Location = new Point(231, 7);
+            Listen.Margin = new Padding(4, 3, 4, 3);
+            Listen.Name = "Listen";
+            Listen.Size = new Size(88, 27);
+            Listen.TabIndex = 22;
+            Listen.Text = "&Start";
+            Listen.Click += Listen_Click;
             // 
             // ToolTipMessage
             // 
-            this.ToolTipMessage.AutoPopDelay = 60000;
-            this.ToolTipMessage.InitialDelay = 1;
-            this.ToolTipMessage.ReshowDelay = 1;
-            this.ToolTipMessage.ShowAlways = true;
+            ToolTipMessage.AutoPopDelay = 60000;
+            ToolTipMessage.InitialDelay = 1;
+            ToolTipMessage.ReshowDelay = 1;
+            ToolTipMessage.ShowAlways = true;
+            // 
+            // AugmentationOptions
+            // 
+            AugmentationOptions.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            AugmentationOptions.DropDownStyle = ComboBoxStyle.DropDownList;
+            AugmentationOptions.FormattingEnabled = true;
+            AugmentationOptions.Location = new Point(518, 8);
+            AugmentationOptions.Margin = new Padding(4, 3, 4, 3);
+            AugmentationOptions.Name = "AugmentationOptions";
+            AugmentationOptions.Size = new Size(251, 23);
+            AugmentationOptions.TabIndex = 35;
+            ToolTipMessage.SetToolTip(AugmentationOptions, "Optional per-destination transformation applied before rebroadcast.\r\nApplied at Start; changes do not take effect until the listener is restarted.");
             // 
             // ListenOnPortLabel
             // 
-            this.ListenOnPortLabel.Location = new System.Drawing.Point(9, 8);
-            this.ListenOnPortLabel.Name = "ListenOnPortLabel";
-            this.ListenOnPortLabel.Size = new System.Drawing.Size(128, 20);
-            this.ListenOnPortLabel.TabIndex = 17;
-            this.ListenOnPortLabel.Text = "&Listen on port:";
-            this.ListenOnPortLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            ListenOnPortLabel.Location = new Point(10, 9);
+            ListenOnPortLabel.Margin = new Padding(4, 0, 4, 0);
+            ListenOnPortLabel.Name = "ListenOnPortLabel";
+            ListenOnPortLabel.Size = new Size(149, 23);
+            ListenOnPortLabel.TabIndex = 17;
+            ListenOnPortLabel.Text = "&Listen on port:";
+            ListenOnPortLabel.TextAlign = ContentAlignment.MiddleRight;
             // 
             // SamplesPerSecLabel
             // 
-            this.SamplesPerSecLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.SamplesPerSecLabel.Location = new System.Drawing.Point(222, 80);
-            this.SamplesPerSecLabel.Name = "SamplesPerSecLabel";
-            this.SamplesPerSecLabel.Size = new System.Drawing.Size(88, 16);
-            this.SamplesPerSecLabel.TabIndex = 30;
-            this.SamplesPerSecLabel.Text = "samples/second";
+            SamplesPerSecLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            SamplesPerSecLabel.Location = new Point(401, 92);
+            SamplesPerSecLabel.Margin = new Padding(4, 0, 4, 0);
+            SamplesPerSecLabel.Name = "SamplesPerSecLabel";
+            SamplesPerSecLabel.Size = new Size(103, 18);
+            SamplesPerSecLabel.TabIndex = 30;
+            SamplesPerSecLabel.Text = "samples/second";
             // 
             // SampleRate
             // 
-            this.SampleRate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.SampleRate.Location = new System.Drawing.Point(190, 80);
-            this.SampleRate.Name = "SampleRate";
-            this.SampleRate.Size = new System.Drawing.Size(31, 16);
-            this.SampleRate.TabIndex = 29;
-            this.SampleRate.Text = "0";
-            this.SampleRate.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            SampleRate.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            SampleRate.Location = new Point(364, 92);
+            SampleRate.Margin = new Padding(4, 0, 4, 0);
+            SampleRate.Name = "SampleRate";
+            SampleRate.Size = new Size(36, 18);
+            SampleRate.TabIndex = 29;
+            SampleRate.Text = "0";
+            SampleRate.TextAlign = ContentAlignment.TopRight;
             // 
             // SampleRateLabel
             // 
-            this.SampleRateLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.SampleRateLabel.Location = new System.Drawing.Point(122, 80);
-            this.SampleRateLabel.Name = "SampleRateLabel";
-            this.SampleRateLabel.Size = new System.Drawing.Size(80, 16);
-            this.SampleRateLabel.TabIndex = 28;
-            this.SampleRateLabel.Text = "Sample Rate:";
+            SampleRateLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            SampleRateLabel.Location = new Point(284, 92);
+            SampleRateLabel.Margin = new Padding(4, 0, 4, 0);
+            SampleRateLabel.Name = "SampleRateLabel";
+            SampleRateLabel.Size = new Size(93, 18);
+            SampleRateLabel.TabIndex = 28;
+            SampleRateLabel.Text = "Sample Rate:";
             // 
             // SampleCount
             // 
-            this.SampleCount.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.SampleCount.Location = new System.Drawing.Point(54, 80);
-            this.SampleCount.Name = "SampleCount";
-            this.SampleCount.Size = new System.Drawing.Size(68, 16);
-            this.SampleCount.TabIndex = 27;
-            this.SampleCount.Text = "0";
+            SampleCount.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            SampleCount.Location = new Point(67, 92);
+            SampleCount.Margin = new Padding(4, 0, 4, 0);
+            SampleCount.Name = "SampleCount";
+            SampleCount.Size = new Size(217, 18);
+            SampleCount.TabIndex = 27;
+            SampleCount.Text = "0";
             // 
             // SamplesLabel
             // 
-            this.SamplesLabel.Location = new System.Drawing.Point(6, 80);
-            this.SamplesLabel.Name = "SamplesLabel";
-            this.SamplesLabel.Size = new System.Drawing.Size(48, 16);
-            this.SamplesLabel.TabIndex = 26;
-            this.SamplesLabel.Text = "Samples:";
+            SamplesLabel.Location = new Point(11, 92);
+            SamplesLabel.Margin = new Padding(4, 0, 4, 0);
+            SamplesLabel.Name = "SamplesLabel";
+            SamplesLabel.Size = new Size(56, 18);
+            SamplesLabel.TabIndex = 26;
+            SamplesLabel.Text = "Samples:";
             // 
             // UDPFrame
             // 
-            this.UDPFrame.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.UDPFrame.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.UDPFrame.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.UDPFrame.Font = new System.Drawing.Font("Courier New", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.UDPFrame.Location = new System.Drawing.Point(9, 104);
-            this.UDPFrame.Name = "UDPFrame";
-            this.UDPFrame.Size = new System.Drawing.Size(533, 254);
-            this.UDPFrame.TabIndex = 31;
-            this.UDPFrame.Text = "UDPFrame";
+            UDPFrame.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            UDPFrame.BorderStyle = BorderStyle.Fixed3D;
+            UDPFrame.FlatStyle = FlatStyle.Flat;
+            UDPFrame.Font = new Font("Courier New", 9.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            UDPFrame.Location = new Point(10, 110);
+            UDPFrame.Margin = new Padding(4, 0, 4, 0);
+            UDPFrame.Name = "UDPFrame";
+            UDPFrame.Size = new Size(760, 361);
+            UDPFrame.TabIndex = 31;
+            UDPFrame.Text = "UDPFrame";
+            // 
+            // AugmentationLabel
+            // 
+            AugmentationLabel.Location = new Point(419, 8);
+            AugmentationLabel.Margin = new Padding(4, 0, 4, 0);
+            AugmentationLabel.Name = "AugmentationLabel";
+            AugmentationLabel.Size = new Size(91, 23);
+            AugmentationLabel.TabIndex = 34;
+            AugmentationLabel.Text = "Au&gmentation:";
+            AugmentationLabel.TextAlign = ContentAlignment.MiddleRight;
             // 
             // UDPRebroadcaster
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(554, 367);
-            this.Controls.Add(this.ShowData);
-            this.Controls.Add(this.AutoListen);
-            this.Controls.Add(this.About);
-            this.Controls.Add(this.Instructions);
-            this.Controls.Add(this.RebroadcastDestinations);
-            this.Controls.Add(this.Port);
-            this.Controls.Add(this.RebroadcastPortLabel);
-            this.Controls.Add(this.Status);
-            this.Controls.Add(this.Listen);
-            this.Controls.Add(this.ListenOnPortLabel);
-            this.Controls.Add(this.SamplesPerSecLabel);
-            this.Controls.Add(this.SampleRate);
-            this.Controls.Add(this.SampleRateLabel);
-            this.Controls.Add(this.SampleCount);
-            this.Controls.Add(this.SamplesLabel);
-            this.Controls.Add(this.UDPFrame);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MinimumSize = new System.Drawing.Size(570, 375);
-            this.Name = "UDPRebroadcaster";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "UDP Rebroadcaster";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.UDPRebroadcaster_FormClosing);
-            this.Load += new System.EventHandler(this.UDPRebroadcaster_Load);
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(784, 481);
+            Controls.Add(AugmentationOptions);
+            Controls.Add(AugmentationLabel);
+            Controls.Add(ShowData);
+            Controls.Add(AutoListen);
+            Controls.Add(About);
+            Controls.Add(Instructions);
+            Controls.Add(RebroadcastDestinations);
+            Controls.Add(Port);
+            Controls.Add(RebroadcastPortLabel);
+            Controls.Add(Status);
+            Controls.Add(Listen);
+            Controls.Add(ListenOnPortLabel);
+            Controls.Add(SamplesPerSecLabel);
+            Controls.Add(SampleRate);
+            Controls.Add(SampleRateLabel);
+            Controls.Add(SampleCount);
+            Controls.Add(SamplesLabel);
+            Controls.Add(UDPFrame);
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(4, 3, 4, 3);
+            MinimumSize = new Size(725, 455);
+            Name = "UDPRebroadcaster";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "UDP Rebroadcaster";
+            FormClosing += UDPRebroadcaster_FormClosing;
+            Load += UDPRebroadcaster_Load;
+            ResumeLayout(false);
+            PerformLayout();
 
         }
 
@@ -262,6 +300,8 @@
         internal System.Windows.Forms.Label SampleCount;
         internal System.Windows.Forms.Label SamplesLabel;
         internal System.Windows.Forms.Label UDPFrame;
+        internal System.Windows.Forms.Label AugmentationLabel;
+        internal System.Windows.Forms.ComboBox AugmentationOptions;
     }
 }
 
