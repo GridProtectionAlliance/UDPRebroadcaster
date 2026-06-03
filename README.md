@@ -25,7 +25,7 @@ A small Windows utility that listens for a UDP stream on a single port and rebro
    ```
    127.0.0.1:3060, archive01.example.com:3070, 10.0.0.42:3080
    ```
-4. **Augmentation** — leave at **No augmentation** for byte-for-byte rebroadcast. Pick a protocol-aware augmentation to rewrite per-destination payloads — see [Augmentations](#augmentations) below.
+4. **Augmentation** — leave at **None** for byte-for-byte rebroadcast. Pick a protocol-aware augmentation to rewrite per-destination payloads — see [Augmentations](#augmentations) below.
 5. **Settings…** — opens the selected augmentation's settings dialog. Disabled when the selected augmentation has no settings form (e.g., **No augmentation**) and while the listener is running. See [Augmentation settings dialog](#augmentation-settings-dialog) for details.
 6. Click **Start** (the button toggles to **Stop** while listening). Port, Destinations, Augmentation, and Settings… controls all disable on Start — they're captured once and changes don't take effect until the next Start.
 7. **Samples** and **Sample Rate** update live as packets arrive.
