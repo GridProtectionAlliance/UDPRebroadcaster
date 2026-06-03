@@ -2,6 +2,55 @@
 
 All notable changes to UDP Rebroadcaster.
 
+## 2.1.0 — 2026-06-02
+
+Adds per-augmentation settings UI so augmentation-specific tuning no longer requires hand-editing the JSON. `SELCWSChannelIDAugmentation` is the first augmentation wired up: it gains an **Incremented / Random** channel-ID mode toggle and **per-destination station labels** that are written into outgoing configuration frames.
+
+### Highlights
+
+- New **`Settings…`** button on the main form, immediately right of the augmentation drop-down. Enabled only when the selected augmentation declares a settings form and the listener is stopped — same lock-during-listen pattern as the other capture-at-Start controls.
+- Augmentations opt into a settings UI by class-level `[SettingsForm(typeof(…))]` attribute (same discovery shape as `[Label("…")]`); the main form has no per-augmentation knowledge.
+- Per-destination defaults (e.g., station labels) materialize automatically the moment the user picks the augmentation or finishes editing the destinations field — even if they never open the dialog.
+
+### Added
+
+- **`SettingsFormAttribute`** (`src/Augmentations/SettingsFormAttribute.cs`) — declares the WinForms `Form` to display for the decorated augmentation. The form must expose a constructor `(AppSettings, IReadOnlyList<IPEndPoint>)`; the main form instantiates it via `Activator.CreateInstance`.
+- **`IConfigurableAugmentation`** (`src/Augmentations/IConfigurableAugmentation.cs`) — companion interface to `IRebroadcastAugmentation` for augmentations with tunable state. `ApplySettings(AppSettings)` runs before `Initialize`; `SynchronizeDefaults(AppSettings, int destinationCount)` is invoked by the main form on augmentation-selected and destinations-changed.
+- **`SELCWSChannelIDSettings`** (`src/Augmentations/SELCWSChannelIDSettings.cs`) — POCO persisted as the `SELCWSChannelID` section of `AppSettings`. Carries the `ChannelIDGenerationMode` (Incremented / Random) and a `List<string>` of per-destination station labels.
+- **`SELCWSChannelIDSettingsForm`** (`src/Augmentations/SELCWSChannelIDSettingsForm.cs` + `.Designer.cs`) — fixed-size dialog with a `Unique Channel ID Generation` group (Incremented / Random radios) and a vertically-scrolling `FlowLayoutPanel` of station-label text boxes, one per current destination. OK persists `AppSettings` to disk; Cancel discards.
+- **`AugmentationSettings`** button on the main form — `Top|Right` anchored, 88×27 (matches `Start` / `About…`), positioned to the right of the augmentation drop-down with a 6-px gap. Tool-tip explains why it's disabled when it is.
+- **`SELCWSChannelID` section** in `settings.json` — holds the generation mode and station-label list. Missing on first run of 2.1; defaults populate transparently.
+- **`ChannelIDGenerationMode.Random`** — destination *N* receives a fresh random `ulong` generated once at `Initialize` time. Stable for the lifetime of the listening session; fresh on the next Start.
+- **Station-label rewrite in SEL CWS configuration frames** — `SELCWSChannelIDAugmentation` now also overwrites the variable-length `ChannelName` field with the user-supplied per-destination label, written as null-terminated UTF-8 per SEL-735 IM Appendix J Table J.3. The field's offset is `24 + 4 * NumAnalogs` (read live from the frame header), its length is bounded at 21 bytes total per spec; the augmentation reads the original field's length out of the incoming frame, rewrites the field, then shifts the post-ChannelName tail (`SignalNames`) to its new offset and updates the `Size` header to match. Data frames are untouched. Frames too short or otherwise malformed are passed through with only the ChannelID rewrite applied.
+- **Frame recognition** — CWS frames are recognized by the FrameID's two bytes: high byte is the type designator (see new `FrameType` enum — `DataFrame = 0x00`, `ConfigurationFrame = 0x01`), low byte is the protocol version (`0x01` for v1). `IsSELCWSFrame` accepts any frame whose version byte is `0x01` and whose type byte is one of the known `FrameType` values; `BeginPacket` then uses the type byte to discriminate configuration vs. data. Replaces the 2.0 byte-pattern recognizer which had the type-byte values swapped (it assumed config `0x00` / data `0x01`, but the wire is the opposite per the authoritative enum).
+- **`FrameType` enum** (`src/Augmentations/FrameType.cs`) — authoritative SEL CWS frame-type designator used by `SELCWSChannelIDAugmentation` for config-vs-data discrimination. Public + `[Serializable]` so future SEL CWS code in the project can reference the same values.
+- **Variable-length SignalNames** — the post-ChannelName tail is treated as opaque bytes whose internal structure (N packed null-terminated UTF-8 names per Table J.3) doesn't matter to the rewrite. Snapshotted byte-for-byte in `BeginPacket`, laid down verbatim at the new ChannelName offset. The earlier draft that assumed a fixed 21-byte tail would have shifted the wrong number of bytes for any frame whose total SignalNames span deviated from 21.
+- **`IRebroadcastAugmentation.TransformForDestination` return type widened** from `void` to `ReadOnlySpan<byte>` — augmentations now hand back the exact slice to send. Lets a per-destination rewrite change the packet length (e.g., a SEL CWS label longer or shorter than the device's original TID). `NoAugmentation` simply returns `buffer`; the receive loop hands the returned slice straight to `UdpClient.Send`.
+- **Internal scratch buffers in `SELCWSChannelIDAugmentation`** — a small pre-allocated work buffer covers the rare case where the user-supplied label encodes to more UTF-8 bytes than the source device's original ChannelName, plus a tail-snapshot buffer that preserves `SignalNames` across the fan-out so a per-destination shift doesn't read garbage left behind by the prior destination's rewrite. Both allocated once at `Initialize`; zero per-packet heap allocations on the hot path.
+- **Default station labels** — `STATION_A`, `STATION_B`, …, `STATION_Z`, then `STATION_AA`, `STATION_AB`, … materialized for each destination automatically (no need to open the settings dialog).
+
+### Changed
+
+- **Main form expanded** to `ClientSize` 878×481 (was 784×481) and `MinimumSize` 819×455 (was 725×455) — accommodates the new `Settings…` button with the same 15-px right margin and 6-px inter-control gap as the rest of the top row.
+- **`AugmentationOptions` drop-down** keeps its `Top|Left|Right` anchor; design-time right margin grows to 109 px so the new button slots in to its right and the gap between them stays constant under resize.
+- **`StopRebroadcasting`** now calls `UpdateSettingsButtonState` to re-enable the `Settings…` button (instead of forcing it on), so the enabled state respects whether the current augmentation has a settings form.
+- **`UDPRebroadcaster_FormClosing`** runs `SynchronizeAugmentationDefaults` immediately before `Save` so any unfocused destination-text edits still get reflected in the persisted defaults.
+
+### Architecture / internals
+
+- **Settings flow at Start**: `selected.Create()` → `(augmentation as IConfigurableAugmentation)?.ApplySettings(m_settings)` → `augmentation.Initialize(destinations)`. `ApplySettings` is the augmentation's only chance to read tunables before `Initialize` runs its per-destination setup (e.g., pre-generating random IDs).
+- **Default-sync triggers**: `AugmentationOptions.SelectedIndexChanged`, `RebroadcastDestinations.Leave`, before opening the settings dialog, and in `FormClosing`. Each invocation creates a transient augmentation instance solely to dispatch `SynchronizeDefaults(settings, destinationCount)`; the instance is discarded immediately.
+- **Settings dialog contract**: the form's constructor receives the live `AppSettings` instance plus the parsed `IPEndPoint[]` for the *current* destinations field. The form reads from / writes back to that same `AppSettings` and calls `Save()` on OK.
+- **`Settings…` button enabled state** = augmentation declares `[SettingsForm]` AND `m_receiveClient is null` (listener stopped). Recomputed on selection change and on Stop; explicitly forced off in Start.
+- **Station-label policy on destination-count changes**: additive. Pad to `destinationCount` with defaults; preserve all existing entries even when the destination count shrinks — so a temporary remove-then-add doesn't lose user-supplied labels.
+- **Random-mode allocation**: one `ulong[]` per listening session (sized to destination count), populated in `Initialize`. Hot-path read is a single indexed access — zero per-packet allocation, same budget as Incremented mode.
+
+### Notes for users
+
+- **Settings are augmentation-specific.** The `Settings…` button is disabled when **No augmentation** is selected (no settings form declared) and while the listener is running (the augmentation captured its settings at Start; mid-session edits would be silently ignored).
+- **Station labels apply to configuration frames only.** Data frames still pass through with just the per-destination channel-ID rewrite — same behavior as 2.0.
+- **First-run upgrade from 2.0** is transparent: the new `SELCWSChannelID` section materializes with defaults the first time you exit 2.1.
+
 ## 2.0.0 — 2026-06-02
 
 First release of the modernized version: a complete .NET 9 rewrite of the 2005-era VB.NET utility (continuing from the unfinished 2011 C# port) plus a new pluggable per-destination augmentation pipeline.

@@ -41,6 +41,7 @@
             Listen = new Button();
             ToolTipMessage = new ToolTip(components);
             AugmentationOptions = new ComboBox();
+            AugmentationSettings = new Button();
             ListenOnPortLabel = new Label();
             SamplesPerSecLabel = new Label();
             SampleRate = new Label();
@@ -54,11 +55,11 @@
             // ShowData
             // 
             ShowData.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            ShowData.Location = new Point(686, 92);
+            ShowData.Location = new Point(703, 89);
             ShowData.Margin = new Padding(4, 3, 4, 3);
             ShowData.Name = "ShowData";
             ShowData.Size = new Size(85, 18);
-            ShowData.TabIndex = 33;
+            ShowData.TabIndex = 16;
             ShowData.Text = "&Show data";
             ShowData.TextAlign = ContentAlignment.BottomLeft;
             ToolTipMessage.SetToolTip(ShowData, "Enabling data display may lower data retransmission rate.");
@@ -67,11 +68,11 @@
             // AutoListen
             // 
             AutoListen.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            AutoListen.Location = new Point(529, 92);
+            AutoListen.Location = new Point(546, 89);
             AutoListen.Margin = new Padding(4, 3, 4, 3);
             AutoListen.Name = "AutoListen";
             AutoListen.Size = new Size(149, 18);
-            AutoListen.TabIndex = 21;
+            AutoListen.TabIndex = 15;
             AutoListen.Text = "A&uto listen on start-up";
             AutoListen.TextAlign = ContentAlignment.BottomLeft;
             // 
@@ -81,7 +82,7 @@
             About.Margin = new Padding(4, 3, 4, 3);
             About.Name = "About";
             About.Size = new Size(88, 27);
-            About.TabIndex = 23;
+            About.TabIndex = 3;
             About.Text = "&About...";
             About.Click += About_Click;
             // 
@@ -91,7 +92,7 @@
             Instructions.Margin = new Padding(4, 0, 4, 0);
             Instructions.Name = "Instructions";
             Instructions.Size = new Size(525, 24);
-            Instructions.TabIndex = 25;
+            Instructions.TabIndex = 9;
             Instructions.Text = "Format =  IP1:port, IP2:port, IP3:port - etc.";
             // 
             // RebroadcastDestinations
@@ -100,9 +101,10 @@
             RebroadcastDestinations.Location = new Point(169, 37);
             RebroadcastDestinations.Margin = new Padding(4, 3, 4, 3);
             RebroadcastDestinations.Name = "RebroadcastDestinations";
-            RebroadcastDestinations.Size = new Size(600, 23);
-            RebroadcastDestinations.TabIndex = 20;
+            RebroadcastDestinations.Size = new Size(619, 23);
+            RebroadcastDestinations.TabIndex = 8;
             RebroadcastDestinations.Text = "127.0.0.1:3060, 127.0.0.1:3070";
+            RebroadcastDestinations.Leave += RebroadcastDestinations_Leave;
             // 
             // Port
             // 
@@ -110,7 +112,7 @@
             Port.Margin = new Padding(4, 3, 4, 3);
             Port.Name = "Port";
             Port.Size = new Size(55, 23);
-            Port.TabIndex = 18;
+            Port.TabIndex = 1;
             Port.Text = "3050";
             // 
             // RebroadcastPortLabel
@@ -119,18 +121,18 @@
             RebroadcastPortLabel.Margin = new Padding(4, 0, 4, 0);
             RebroadcastPortLabel.Name = "RebroadcastPortLabel";
             RebroadcastPortLabel.Size = new Size(159, 23);
-            RebroadcastPortLabel.TabIndex = 19;
+            RebroadcastPortLabel.TabIndex = 7;
             RebroadcastPortLabel.Text = "&Rebroadcast destinations:";
             RebroadcastPortLabel.TextAlign = ContentAlignment.MiddleRight;
             // 
             // Status
             // 
             Status.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            Status.Location = new Point(422, 58);
+            Status.Location = new Point(514, 61);
             Status.Margin = new Padding(4, 0, 4, 0);
             Status.Name = "Status";
-            Status.Size = new Size(349, 28);
-            Status.TabIndex = 24;
+            Status.Size = new Size(274, 28);
+            Status.TabIndex = 17;
             Status.TextAlign = ContentAlignment.MiddleRight;
             // 
             // Listen
@@ -139,7 +141,7 @@
             Listen.Margin = new Padding(4, 3, 4, 3);
             Listen.Name = "Listen";
             Listen.Size = new Size(88, 27);
-            Listen.TabIndex = 22;
+            Listen.TabIndex = 2;
             Listen.Text = "&Start";
             Listen.Click += Listen_Click;
             // 
@@ -158,9 +160,22 @@
             AugmentationOptions.Location = new Point(518, 8);
             AugmentationOptions.Margin = new Padding(4, 3, 4, 3);
             AugmentationOptions.Name = "AugmentationOptions";
-            AugmentationOptions.Size = new Size(251, 23);
-            AugmentationOptions.TabIndex = 35;
+            AugmentationOptions.Size = new Size(176, 23);
+            AugmentationOptions.TabIndex = 5;
             ToolTipMessage.SetToolTip(AugmentationOptions, "Optional per-destination transformation applied before rebroadcast.\r\nApplied at Start; changes do not take effect until the listener is restarted.");
+            AugmentationOptions.SelectedIndexChanged += AugmentationOptions_SelectedIndexChanged;
+            // 
+            // AugmentationSettings
+            // 
+            AugmentationSettings.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            AugmentationSettings.Location = new Point(700, 7);
+            AugmentationSettings.Margin = new Padding(4, 3, 4, 3);
+            AugmentationSettings.Name = "AugmentationSettings";
+            AugmentationSettings.Size = new Size(88, 27);
+            AugmentationSettings.TabIndex = 6;
+            AugmentationSettings.Text = "Se&ttings...";
+            ToolTipMessage.SetToolTip(AugmentationSettings, "Configure the currently-selected augmentation.\r\nDisabled when the augmentation has no settings, or while the listener is running.");
+            AugmentationSettings.Click += AugmentationSettings_Click;
             // 
             // ListenOnPortLabel
             // 
@@ -168,39 +183,39 @@
             ListenOnPortLabel.Margin = new Padding(4, 0, 4, 0);
             ListenOnPortLabel.Name = "ListenOnPortLabel";
             ListenOnPortLabel.Size = new Size(149, 23);
-            ListenOnPortLabel.TabIndex = 17;
+            ListenOnPortLabel.TabIndex = 0;
             ListenOnPortLabel.Text = "&Listen on port:";
             ListenOnPortLabel.TextAlign = ContentAlignment.MiddleRight;
             // 
             // SamplesPerSecLabel
             // 
             SamplesPerSecLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            SamplesPerSecLabel.Location = new Point(401, 92);
+            SamplesPerSecLabel.Location = new Point(418, 89);
             SamplesPerSecLabel.Margin = new Padding(4, 0, 4, 0);
             SamplesPerSecLabel.Name = "SamplesPerSecLabel";
             SamplesPerSecLabel.Size = new Size(103, 18);
-            SamplesPerSecLabel.TabIndex = 30;
+            SamplesPerSecLabel.TabIndex = 14;
             SamplesPerSecLabel.Text = "samples/second";
             // 
             // SampleRate
             // 
             SampleRate.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            SampleRate.Location = new Point(364, 92);
+            SampleRate.Location = new Point(381, 89);
             SampleRate.Margin = new Padding(4, 0, 4, 0);
             SampleRate.Name = "SampleRate";
             SampleRate.Size = new Size(36, 18);
-            SampleRate.TabIndex = 29;
+            SampleRate.TabIndex = 13;
             SampleRate.Text = "0";
             SampleRate.TextAlign = ContentAlignment.TopRight;
             // 
             // SampleRateLabel
             // 
             SampleRateLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            SampleRateLabel.Location = new Point(284, 92);
+            SampleRateLabel.Location = new Point(301, 89);
             SampleRateLabel.Margin = new Padding(4, 0, 4, 0);
             SampleRateLabel.Name = "SampleRateLabel";
             SampleRateLabel.Size = new Size(93, 18);
-            SampleRateLabel.TabIndex = 28;
+            SampleRateLabel.TabIndex = 12;
             SampleRateLabel.Text = "Sample Rate:";
             // 
             // SampleCount
@@ -209,8 +224,8 @@
             SampleCount.Location = new Point(67, 92);
             SampleCount.Margin = new Padding(4, 0, 4, 0);
             SampleCount.Name = "SampleCount";
-            SampleCount.Size = new Size(217, 18);
-            SampleCount.TabIndex = 27;
+            SampleCount.Size = new Size(142, 18);
+            SampleCount.TabIndex = 11;
             SampleCount.Text = "0";
             // 
             // SamplesLabel
@@ -219,7 +234,7 @@
             SamplesLabel.Margin = new Padding(4, 0, 4, 0);
             SamplesLabel.Name = "SamplesLabel";
             SamplesLabel.Size = new Size(56, 18);
-            SamplesLabel.TabIndex = 26;
+            SamplesLabel.TabIndex = 10;
             SamplesLabel.Text = "Samples:";
             // 
             // UDPFrame
@@ -231,8 +246,8 @@
             UDPFrame.Location = new Point(10, 110);
             UDPFrame.Margin = new Padding(4, 0, 4, 0);
             UDPFrame.Name = "UDPFrame";
-            UDPFrame.Size = new Size(760, 361);
-            UDPFrame.TabIndex = 31;
+            UDPFrame.Size = new Size(778, 296);
+            UDPFrame.TabIndex = 18;
             UDPFrame.Text = "UDPFrame";
             // 
             // AugmentationLabel
@@ -241,7 +256,7 @@
             AugmentationLabel.Margin = new Padding(4, 0, 4, 0);
             AugmentationLabel.Name = "AugmentationLabel";
             AugmentationLabel.Size = new Size(91, 23);
-            AugmentationLabel.TabIndex = 34;
+            AugmentationLabel.TabIndex = 4;
             AugmentationLabel.Text = "Au&gmentation:";
             AugmentationLabel.TextAlign = ContentAlignment.MiddleRight;
             // 
@@ -249,7 +264,8 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(784, 481);
+            ClientSize = new Size(803, 416);
+            Controls.Add(AugmentationSettings);
             Controls.Add(AugmentationOptions);
             Controls.Add(AugmentationLabel);
             Controls.Add(ShowData);
@@ -270,7 +286,7 @@
             Controls.Add(UDPFrame);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(4, 3, 4, 3);
-            MinimumSize = new Size(725, 455);
+            MinimumSize = new Size(819, 455);
             Name = "UDPRebroadcaster";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "UDP Rebroadcaster";
@@ -302,6 +318,7 @@
         internal System.Windows.Forms.Label UDPFrame;
         internal System.Windows.Forms.Label AugmentationLabel;
         internal System.Windows.Forms.ComboBox AugmentationOptions;
+        internal System.Windows.Forms.Button AugmentationSettings;
     }
 }
 

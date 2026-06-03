@@ -23,6 +23,7 @@
 // ReSharper disable ConvertTypeCheckPatternToNullCheck
 
 using System.Text.Json;
+using UDPRebroadcaster.Augmentations;
 
 namespace UDPRebroadcaster;
 
@@ -77,7 +78,14 @@ internal sealed class AppSettings
     public string Augmentation { get; set; } = "NoAugmentation";
 
     /// <summary>
-    /// 
+    /// Gets or sets the persisted settings for <see cref="SELCWSChannelIDAugmentation"/>. Lives in
+    /// its own JSON section so additional augmentations can be given their own section without
+    /// disturbing the existing payload.
+    /// </summary>
+    public SELCWSChannelIDSettings SELCWSChannelID { get; set; } = new();
+
+    /// <summary>
+    ///
     /// </summary>
     public int? WindowX { get; set; }
 
@@ -138,7 +146,18 @@ internal sealed class AppSettings
         try
         {
             if (File.Exists(s_settingsPath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(s_settingsPath)) ?? new AppSettings();
+            {
+                AppSettings? loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(s_settingsPath));
+
+                if (loaded is not null)
+                {
+                    // Per-augmentation sections are object-typed; a hand-edited "SELCWSChannelID": null
+                    // or "StationLabels": null in the JSON would otherwise NullReference downstream.
+                    loaded.SELCWSChannelID ??= new SELCWSChannelIDSettings();
+                    loaded.SELCWSChannelID.StationLabels ??= [];
+                    return loaded;
+                }
+            }
         }
         catch
         {

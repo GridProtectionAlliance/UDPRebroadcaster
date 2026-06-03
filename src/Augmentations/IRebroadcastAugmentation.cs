@@ -20,6 +20,9 @@
 //       Generated original version of source code.
 //  06/02/2026 - J. Ritchie Carroll
 //       Switched to in-place Span<byte> mutation; added BeginPacket for per-packet state.
+//  06/02/2026 - J. Ritchie Carroll
+//       TransformForDestination now returns ReadOnlySpan<byte> so an augmentation can change
+//       the per-destination payload length (e.g., SEL CWS variable-length ChannelName rewrite).
 //
 //******************************************************************************************************
 
@@ -68,13 +71,19 @@ internal interface IRebroadcastAugmentation
     void BeginPacket(ReadOnlySpan<byte> source);
 
     /// <summary>
-    /// Mutates <paramref name="buffer"/> in place so its current bytes are what should be sent
-    /// to the destination at <paramref name="destinationIndex"/>. Called once per destination
-    /// per packet, with destination indices in ascending order (0..N-1).
+    /// Mutates <paramref name="buffer"/> in place (or, if the per-destination payload must grow,
+    /// fills an augmentation-owned scratch buffer) and returns the exact byte slice to send to
+    /// the destination at <paramref name="destinationIndex"/>. Called once per destination per
+    /// packet, with destination indices in ascending order (0..N-1).
     /// </summary>
     /// <param name="buffer">Working buffer. On entry holds whatever the previous destination's
-    /// call left behind (or the original packet bytes on the first call); on return must hold
-    /// the bytes to send to this destination.</param>
+    /// call left behind (or the original packet bytes on the first call). Augmentations that
+    /// don't change packet length should mutate it in place and return it; those that shrink
+    /// the packet should mutate it in place and return a prefix slice; those that may grow it
+    /// past <c>buffer.Length</c> must back the rewrite with an internal scratch buffer and
+    /// return a slice into that.</param>
     /// <param name="destinationIndex">Zero-based index of the destination to produce bytes for.</param>
-    void TransformForDestination(Span<byte> buffer, int destinationIndex);
+    /// <returns>The bytes to send. Valid only until the next call into the augmentation —
+    /// callers must consume immediately (a synchronous <c>Send</c> is the expected pattern).</returns>
+    ReadOnlySpan<byte> TransformForDestination(Span<byte> buffer, int destinationIndex);
 }

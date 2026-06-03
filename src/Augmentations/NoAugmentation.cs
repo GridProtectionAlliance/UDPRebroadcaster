@@ -40,7 +40,8 @@ internal sealed class NoAugmentation : IRebroadcastAugmentation
     {
     }
 
-    public void TransformForDestination(Span<byte> buffer, int destinationIndex)
+    public ReadOnlySpan<byte> TransformForDestination(Span<byte> buffer, int destinationIndex)
     {
+        return buffer;
     }
 }

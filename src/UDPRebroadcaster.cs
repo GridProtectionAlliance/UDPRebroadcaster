@@ -83,6 +83,9 @@ public partial class UDPRebroadcaster : Form
 
         // Restore previously selected augmentation by type name; fall back to the first entry
         // (the NoAugmentation default per AugmentationDiscovery's ordering) if missing.
+        // Setting SelectedItem fires SelectedIndexChanged, which in turn syncs per-destination
+        // defaults into AppSettings and recomputes the Settings button's enabled state — no
+        // explicit call to either here.
         AugmentationOption? restored = m_augmentationOptions.FirstOrDefault(o => o.Type.Name == m_settings.Augmentation);
         AugmentationOptions.SelectedItem = restored ?? m_augmentationOptions.FirstOrDefault();
 
@@ -97,12 +100,103 @@ public partial class UDPRebroadcaster : Form
     {
         StopRebroadcasting();
 
+        // Make a final pass so any in-flight edits to the destinations field that never lost
+        // focus still get reflected in the augmentation's per-destination defaults before save.
+        SynchronizeAugmentationDefaults();
+
         m_settings.Port = Port.Text;
         m_settings.RebroadcastDestinations = RebroadcastDestinations.Text;
         m_settings.AutoListen = AutoListen.Checked;
         m_settings.Augmentation = (AugmentationOptions.SelectedItem as AugmentationOption)?.Type.Name ?? nameof(NoAugmentation);
         m_settings.CaptureWindowLayout(this);
         m_settings.Save();
+    }
+
+    private void AugmentationOptions_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        // Selection just changed — give the new augmentation a chance to materialize
+        // per-destination defaults (e.g., station labels) in AppSettings before the user clicks
+        // anywhere else, then refresh the Settings button's enabled state for the new type.
+        SynchronizeAugmentationDefaults();
+        UpdateSettingsButtonState();
+    }
+
+    private void RebroadcastDestinations_Leave(object? sender, EventArgs e)
+    {
+        // User finished editing the destinations text box; resync the selected augmentation's
+        // per-destination defaults so a freshly-added endpoint already has a sensible default
+        // label by the time the listener (or the settings dialog) reads them.
+        SynchronizeAugmentationDefaults();
+    }
+
+    private void AugmentationSettings_Click(object? sender, EventArgs e)
+    {
+        if (AugmentationOptions.SelectedItem is not AugmentationOption selected)
+            return;
+
+        SettingsFormAttribute? attribute = selected.Type.GetCustomAttribute<SettingsFormAttribute>();
+
+        if (attribute is null)
+            return;
+
+        // Sync first so the dialog renders exactly one row per current destination, with default
+        // labels in place for any that the user hasn't customized yet.
+        SynchronizeAugmentationDefaults();
+
+        IPEndPoint[] destinations;
+
+        try
+        {
+            destinations = ParseDestinations(RebroadcastDestinations.Text);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Cannot open settings — current destinations are not parseable:\n\n{ex.Message}", Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        try
+        {
+            using Form form = (Form)Activator.CreateInstance(attribute.FormType, m_settings, destinations)!;
+            form.ShowDialog(this);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void SynchronizeAugmentationDefaults()
+    {
+        if (AugmentationOptions.SelectedItem is not AugmentationOption selected)
+            return;
+
+        // Transient instance — created only so SynchronizeDefaults has somewhere to dispatch to;
+        // discarded immediately after. Augmentations without IConfigurableAugmentation contribute
+        // nothing here, which is correct (no per-destination state to maintain).
+        if (selected.Create() is not IConfigurableAugmentation configurable)
+            return;
+
+        configurable.SynchronizeDefaults(m_settings, CountDestinations(RebroadcastDestinations.Text));
+    }
+
+    private void UpdateSettingsButtonState()
+    {
+        // Enabled iff the current augmentation declares a settings form AND we're not in the
+        // middle of a listening session (the augmentation captured its settings at Start, so
+        // editing mid-session would be silently ignored — same pattern as the other locked
+        // controls).
+        bool hasForm = AugmentationOptions.SelectedItem is AugmentationOption selected
+            && selected.Type.GetCustomAttribute<SettingsFormAttribute>() is not null;
+
+        AugmentationSettings.Enabled = hasForm && m_receiveClient is null;
+    }
+
+    private static int CountDestinations(string text)
+    {
+        // Cheap count for sync purposes — avoids DNS resolution / port validation that
+        // ParseDestinations does, so it's safe to call during transient text-box states.
+        return text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
     }
 
     private void Listen_Click(object? sender, EventArgs e)
@@ -133,6 +227,7 @@ public partial class UDPRebroadcaster : Form
         Port.Enabled = false;
         RebroadcastDestinations.Enabled = false;
         AugmentationOptions.Enabled = false;
+        AugmentationSettings.Enabled = false;
 
         SampleCount.Text = "0";
         SampleRate.Text = "0";
@@ -155,6 +250,12 @@ public partial class UDPRebroadcaster : Form
             ?? m_augmentationOptions.First(option => option.Type == typeof(NoAugmentation));
 
         m_augmentation = selected.Create();
+
+        // ApplySettings runs before Initialize so an augmentation's per-destination setup (e.g.,
+        // random-mode ID generation) can read whatever settings the user persisted via the
+        // settings dialog. Augmentations without IConfigurableAugmentation skip this step.
+        (m_augmentation as IConfigurableAugmentation)?.ApplySettings(m_settings);
+
         m_augmentation.Initialize(m_destinations);
 
         // Send socket: ephemeral local port, IPv4. Sends are synchronous; UDP sends are fast
@@ -203,6 +304,11 @@ public partial class UDPRebroadcaster : Form
 
         m_destinations = null;
         m_augmentation = null;
+
+        // Run this AFTER m_receiveClient is nulled out — the helper reads that field to decide
+        // whether to enable the button, so calling it earlier would leave the button disabled
+        // even after the listener has fully stopped.
+        UpdateSettingsButtonState();
     }
 
     private async Task ReceiveLoopAsync(UdpClient client, CancellationToken cancellationToken)
@@ -254,13 +360,18 @@ public partial class UDPRebroadcaster : Form
 
         for (int i = 0; i < destinations.Length; i++)
         {
-            augmentation.TransformForDestination(packet, i);
+            // TransformForDestination returns the exact slice to send — may be the same length
+            // as 'packet', a prefix of it (augmentation shrunk the payload), or a span into the
+            // augmentation's scratch buffer (augmentation grew the payload past the receive
+            // buffer's capacity). Either way the slice is only valid until the next call into
+            // the augmentation, which is fine — Send copies synchronously below.
+            ReadOnlySpan<byte> outgoing = augmentation.TransformForDestination(packet, i);
 
             try
             {
                 // Span overload — UdpClient.Send copies into the kernel send buffer
                 // synchronously, so we're free to mutate 'packet' again for the next iteration.
-                sendClient.Send(packet, destinations[i]);
+                sendClient.Send(outgoing, destinations[i]);
             }
             catch (ObjectDisposedException)
             {
