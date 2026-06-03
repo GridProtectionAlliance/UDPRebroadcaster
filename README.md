@@ -26,7 +26,7 @@ A small Windows utility that listens for a UDP stream on a single port and rebro
    127.0.0.1:3060, archive01.example.com:3070, 10.0.0.42:3080
    ```
 4. **Augmentation** — leave at **None** for byte-for-byte rebroadcast. Pick a protocol-aware augmentation to rewrite per-destination payloads — see [Augmentations](#augmentations) below.
-5. **Settings…** — opens the selected augmentation's settings dialog. Disabled when the selected augmentation has no settings form (e.g., **No augmentation**) and while the listener is running. See [Augmentation settings dialog](#augmentation-settings-dialog) for details.
+5. **Settings…** — opens the selected augmentation's settings dialog. Disabled when the selected augmentation has no settings form (e.g., **None** augmentation selection) and while the listener is running. See [Augmentation settings dialog](#augmentation-settings-dialog) for details.
 6. Click **Start** (the button toggles to **Stop** while listening). Port, Destinations, Augmentation, and Settings… controls all disable on Start — they're captured once and changes don't take effect until the next Start.
 7. **Samples** and **Sample Rate** update live as packets arrive.
 8. Tick **Show data** to render a hex dump of the most recent packet (incoming bytes, before any augmentation) in the lower panel. The hex string is formatted on the receive thread; expect some throughput cost on high-rate streams. Leave off in production.
@@ -51,7 +51,7 @@ An augmentation is a per-destination transformation applied to each datagram on 
 
 | Label | Type | Behavior |
 | --- | --- | --- |
-| **No augmentation** | `NoAugmentation` | Pass-through. Bytes sent to every destination are identical to bytes received. Both pipeline methods are empty bodies — true zero-work no-op. |
+| **None** | `NoAugmentation` | Pass-through. Bytes sent to every destination are identical to bytes received. Both pipeline methods are empty bodies — true zero-work no-op. |
 | **SEL CWS unique per end-point channel ID** | `SELCWSChannelIDAugmentation` | Rewrites the `Uint64` ChannelID at offset 6 of each SEL CWS frame (configuration or data) so the destination at index `N` receives either `originalChannelID + (N + 1)` (Incremented mode) or a fresh random `Uint64` per destination (Random mode, generated once at Start). For **configuration frames** also overwrites the variable-length null-terminated UTF-8 `ChannelName` field (located at offset `24 + 4 * NumAnalogs`, capped at 21 bytes total per spec) with the per-destination station label picked in the **Settings…** dialog — the variable-length tail (`SignalNames` — N packed null-terminated UTF-8 names) shifts to its new offset verbatim and the frame's `Size` header is updated to match. Configuration vs. data is determined by the FrameID's type byte against the `FrameType` enum (`DataFrame = 0x00`, `ConfigurationFrame = 0x01`). Lets multiple copies of one upstream SEL CWS stream be sent to the *same* downstream receiver (e.g., the SEL CWS Receiver in the SEL SynchroWave Rebroadcaster, which listens on a single port) and remain disambiguable. SEL CWS has no checksum, so neither rewrite requires a recompute. Non-SEL-CWS packets pass through unchanged. |
 
 ### Scaling-up testing example
